@@ -60,23 +60,28 @@ def get_schedule(url):
 def main():
     print("Введите группу")
     group = input()
-    url = f'https://www.nstu.ru/studies/schedule/schedule_classes/schedule?group={group}'
+
+    week = input("Введите недельку\n")
+    day = input("Введите денек\n")
+    url = f'https://www.nstu.ru/studies/schedule/schedule_classes/schedule?group={group}&week={week}'
+
     schedule = get_schedule(url)
-    current_day = None  # Переменная для отслеживания текущего дня
+    current_day = None
 
     for class_schedule in schedule:
-        # Проверяем, изменился ли день
-        if class_schedule['day'] != current_day:
-            print(f"День: {class_schedule['day']}")
-            current_day = class_schedule['day']
 
-        if (class_schedule['time'] and class_schedule['subject'] and class_schedule['classroom']):
-            print(f"Время: {class_schedule['time']}")
-            print(f"Предмет: {class_schedule['subject']}")
-            print(f"Тип пары: {class_schedule['type']}")
-            print(f"Аудитория: {class_schedule['classroom']}")
-            print('-' * 50)
+        if day in str(class_schedule['day']):
 
+            if class_schedule['day'] != current_day:
+                print(f"День: {class_schedule['day']}")
+                current_day = class_schedule['day']
+
+            if (class_schedule['time'] and class_schedule['subject'] and class_schedule['classroom']):
+                print(f"Время: {class_schedule['time']}")
+                print(f"Предмет: {class_schedule['subject']}")
+                print(f"Тип пары: {class_schedule['type']}")
+                print(f"Аудитория: {class_schedule['classroom']}")
+                print('-' * 50)
 
 if __name__ == '__main__':
     main()
