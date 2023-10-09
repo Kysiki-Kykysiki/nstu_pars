@@ -2,65 +2,56 @@ import requests
 from bs4 import BeautifulSoup
 
 
+def get_text(element, class_name):
+    item = element.find(['div', 'span'], class_=class_name)
+    return item.get_text(strip=True) if item else ''
+
+
 def get_schedule(url):
-    req = requests.get(url)
-    soup = BeautifulSoup(req.text, 'html.parser')
+    try:
+        req = requests.get(url)
+        req.raise_for_status()
+        soup = BeautifulSoup(req.text, 'html.parser')
 
-    schedule_data = []
-    current_day = None  # Переменная для отслеживания текущего дня
+        schedule_data = []
+        current_day = None
 
-    class_rows = soup.find_all('div', class_='schedule__table-row')
+        class_rows = soup.find_all('div', class_='schedule__table-row')
 
-    for class_row in class_rows:
-        day_rows = class_row.find('div', class_='schedule__table-day')
-        day_text = day_rows.get_text(strip=True) if day_rows else ''
+        for class_row in class_rows:
+            day_rows = class_row.find('div', class_='schedule__table-day')
+            day_text = day_rows.get_text(strip=True) if day_rows else ''
 
-        # Если день изменился, обновляем current_day
-        if day_text:
-            current_day = day_text
+            if day_text:
+                current_day = day_text
 
-        class_data = class_row.find_all('div', class_='schedule__table-cell')
-        if len(class_data) < 2:
-            continue
+            class_data = class_row.find_all('div', class_='schedule__table-cell')
+            if len(class_data) < 2:
+                continue
 
-        time_element = class_data[0].find('div', class_='schedule__table-time')
-        if time_element:
-            time = time_element.get_text(strip=True)
-        else:
-            time = ''
+            time = get_text(class_data[0], 'schedule__table-time')
+            subject = get_text(class_data[1], 'schedule__table-item')
+            type_work = get_text(class_data[1], 'schedule__table-typework')
+            classroom = get_text(class_data[1], 'schedule__table-class')
 
-        item = class_data[1].find('div', class_='schedule__table-cell')
+            class_schedule = {
+                'day': current_day,
+                'time': time,
+                'subject': subject.replace(classroom, '').replace(type_work, '').strip(),
+                'type': type_work,
+                'classroom': classroom
+            }
 
-        if item:
-            subject_element = item.find('div', class_='schedule__table-item')
-            work_type = item.find('span', class_='schedule__table-typework')
-            subject_text = subject_element.get_text(strip=True) if subject_element else ''
-            work_type_text = work_type.get_text(strip=True) if work_type else ''
-            classroom_element = item.find('span', class_='schedule__table-class')
-            classroom_text = classroom_element.get_text(strip=True) if classroom_element else ''
-            subject = subject_text.replace(classroom_text, '').replace(work_type_text, '').strip()
-            classroom = classroom_text
-            type_work = work_type_text
-        else:
-            subject, classroom, type_work = '', '', ''
+            schedule_data.append(class_schedule)
 
-        class_schedule = {
-            'day': current_day,  # Используем текущий день
-            'time': time,
-            'subject': subject,
-            'type': type_work,
-            'classroom': classroom
-        }
-
-        schedule_data.append(class_schedule)
-
-    return schedule_data
+        return schedule_data
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        return []
 
 
 def main():
-    print("Введите группу")
-    group = input()
-
+    group = input("Введите группу\n")
     week = input("Введите недельку\n")
     day = input("Введите денек\n")
     url = f'https://www.nstu.ru/studies/schedule/schedule_classes/schedule?group={group}&week={week}'
@@ -69,9 +60,7 @@ def main():
     current_day = None
 
     for class_schedule in schedule:
-
         if day in str(class_schedule['day']):
-
             if class_schedule['day'] != current_day:
                 print(f"День: {class_schedule['day']}")
                 current_day = class_schedule['day']
@@ -82,6 +71,7 @@ def main():
                 print(f"Тип пары: {class_schedule['type']}")
                 print(f"Аудитория: {class_schedule['classroom']}")
                 print('-' * 50)
+
 
 if __name__ == '__main__':
     main()
